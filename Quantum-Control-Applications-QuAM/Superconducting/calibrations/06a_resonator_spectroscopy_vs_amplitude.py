@@ -115,8 +115,7 @@ with program() as multi_res_spec_vs_amp:
         align(*[rr.name for rr in resonators])
 
         with stream_processing():
-            if not i:
-                n_st.save("n")
+            n_st.save("n")
             # for i in range(num_resonators):
             I_st[i].buffer(len(amps)).buffer(len(dfs)).average().save(f"I{i + 1}")
             Q_st[i].buffer(len(amps)).buffer(len(dfs)).average().save(f"Q{i + 1}")

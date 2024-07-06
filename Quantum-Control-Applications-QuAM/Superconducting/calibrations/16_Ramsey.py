@@ -57,10 +57,10 @@ num_qubits = len(qubits)
 ###################
 # The QUA program #
 ###################
-n_avg = 2
+n_avg = 200
 
 # Dephasing time sweep (in clock cycles = 4ns) - minimum is 4 clock cycles
-idle_times = np.arange(4, 1000, 5)
+idle_times = np.arange(4, 4000, 4)
 
 # Detuning converted into virtual Z-rotations to observe Ramsey oscillation and get the qubit frequency
 detuning = 1e6
@@ -150,7 +150,7 @@ else:
         progress_counter(n, n_avg, start_time=results.start_time)
         # Plot results
         plt.suptitle("Ramsey")
-        for i, (ax, qubit) in enumerate(zip(axes, qubits)):
+        for i, (ax, qubit) in enumerate(zip(axes.T, qubits)):
             ax[0].cla()
             ax[0].plot(4 * idle_times, I_volts[i])
             ax[0].set_ylabel("I [V]")
@@ -196,7 +196,7 @@ else:
             # Update the state
             qubit_detuning = fit_I["f"][0] * u.GHz - detuning
             qubit.T2ramsey = int(fit_I["T2"][0])
-            qubit.xy.intermediate_frequency -= qubit_detuning
+            qubit.xy.RF_frequency += qubit_detuning
             data[f"{qubit.name}"] = {
                 "T2*": qubit.T2ramsey,
                 "if_01": qubit.xy.intermediate_frequency,

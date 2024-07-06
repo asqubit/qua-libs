@@ -181,7 +181,7 @@ else:
             plt.ylabel(r"R=$\sqrt{I^2 + Q^2}$ [V]")
             plt.title(f"{rr.name}")
             intermediate_frequency = int(res_1["f"][0] * u.MHz)
-            rr.RF_frequency = rr.LO_frequency + intermediate_frequency
+            # rr.RF_frequency = rr.LO_frequency + intermediate_frequency
             plt.legend((f"fr = {rr.RF_frequency:.3f} MHz",))
 
             data[f"{rr.name}"] = {

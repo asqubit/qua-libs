@@ -193,9 +193,9 @@ else:
             qubit.resonator.operations["readout"].amplitude
             * amplitudes[np.argmax(fidelity_vec[i])]
         )
-        qubit.resonator.operations["readout"].amplitude *= amplitudes[
-            np.argmax(fidelity_vec[i])
-        ]
+        # qubit.resonator.operations["readout"].amplitude *= amplitudes[
+        #     np.argmax(fidelity_vec[i])
+        # ]
 
     data["figure"] = fig
 

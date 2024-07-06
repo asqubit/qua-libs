@@ -56,29 +56,30 @@ num_qubits = len(qubits)
 ###################
 
 operation = "saturation"  # The qubit operation to play, can be switched to "x180" when the qubits are found.
-n_avg = 200  # Number of averaging loops
+n_avg = 40  # Number of averaging loops
 cooldown_time = max(q.thermalization_time for q in qubits)
 pulse = "x180"
+compensation_scale = 0.427 - 0.053
 
 # Qubit detuning sweep with respect to their resonance frequencies
 dfs = np.arange(-300e6, 100e6, 1e6)
 # Flux bias sweep
 dcs = np.linspace(-0.1, 0.1, 100)
 
-# Adjust the qubits IFs locally to help find the qubits
-# q1.xy.intermediate_frequency = 340e6
-# q2.xy.intermediate_frequency = 0
+other_element = (machine.qubits["q4"] @ machine.qubits["q5"]).coupler
+dc_offset = 0.01
 
 with program() as multi_qubit_spec_vs_flux:
     # Macro to declare I, Q, n and their respective streams for a given number of qubit (defined in macros.py)
     I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=num_qubits)
     df = declare(int)  # QUA variable for the qubit frequency
     dc = declare(fixed)  # QUA variable for the flux dc level
-
+    dc_compensate = declare(fixed)  # QUA variable for the flux dc level
     for i, q in enumerate(qubits):
 
         # Bring the active qubits to the minimum frequency point
         machine.apply_all_flux_to_min()
+        q.z.set_dc_offset(dc_offset)
 
         with for_(n, 0, n < n_avg, n + 1):
             save(n, n_st)
@@ -88,6 +89,9 @@ with program() as multi_qubit_spec_vs_flux:
                 update_frequency(q.xy.name, df + q.xy.intermediate_frequency)
 
                 with for_(*from_array(dc, dcs)):
+                    assign(dc_compensate, dc_offset + compensation_scale * dc)
+                    q.z.set_dc_offset(dc_compensate)
+
                     # Flux sweeping for all qubits
                     other_element.set_dc_offset(dc)
                     wait(100)  # Wait for the flux to settle
@@ -96,8 +100,8 @@ with program() as multi_qubit_spec_vs_flux:
                     q.xy.play(pulse)
 
                     align()
-                    # q.z.set_dc_offset(0)
-                    wait(100)
+                    # q.z.to_min()
+                    wait(300)
                     align()
 
                     # QUA macro to read the state of the active resonators
@@ -107,7 +111,7 @@ with program() as multi_qubit_spec_vs_flux:
                     save(I[i], I_st[i])
                     save(Q[i], Q_st[i])
 
-                    q.z.set_dc_offset(dc)
+                    q.z.set_dc_offset(dc_compensate)
                     # Wait for the qubits to decay to the ground state
                     wait(cooldown_time * u.ns)
 

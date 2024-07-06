@@ -160,8 +160,10 @@ else:
         qubit.resonator.operations["readout"].threshold = threshold
         qubit.resonator.operations["readout"].rus_exit_threshold = rus_threshold
 
+    plt.show()
     qm.close()
 
     node_save(machine, "iq_blobs", data, additional_files=True)
+
 
 # %%

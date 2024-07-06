@@ -59,7 +59,7 @@ num_qubits = len(qubits)
 ###################
 
 operation = "x180"  # The qubit operation to play
-n_avg = 2  # The number of averages
+n_avg = 100  # The number of averages
 
 # The frequency sweep with respect to the qubits resonance frequencies
 dfs = np.arange(-100e6, +100e6, 1e6)
