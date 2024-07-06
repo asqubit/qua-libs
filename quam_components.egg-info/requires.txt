@@ -1,0 +1,3 @@
+quam@ git+https://github.com/qua-platform/quam.git
+qm-qua==1.2.0
+qualang-tools
