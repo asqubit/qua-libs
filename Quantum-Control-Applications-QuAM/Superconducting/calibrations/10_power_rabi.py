@@ -46,7 +46,6 @@ u = unit(coerce_to_integer=True)
 machine = QuAM.load()
 # Generate the OPX and Octave configurations
 config = machine.generate_config()
-octave_config = machine.get_octave_config()
 # Open Communication with the QOP
 qmm = machine.connect()
 
@@ -59,12 +58,12 @@ num_qubits = len(qubits)
 ###################
 
 operation = "x180"  # The qubit operation to play
-n_avg = 100  # The number of averages
+n_avg = 600  # The number of averages
 
 # Pulse amplitude sweep (as a pre-factor of the qubit pulse amplitude) - must be within [-2; 2)
 amps = np.arange(0.0, 2, 0.025)
 # Number of applied Rabi pulses sweep
-N_pi = 30  # Maximum number of qubit pulses
+N_pi = 40  # Maximum number of qubit pulses
 N_pi_vec = np.linspace(1, N_pi, N_pi).astype("int")[::2]
 
 with program() as power_rabi:

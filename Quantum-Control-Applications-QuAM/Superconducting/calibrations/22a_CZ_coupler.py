@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from quam_components import QuAM
+from quam_libs.components import QuAM
 from quam_libs.macros import qua_declaration, multiplexed_readout, node_save
 
 
@@ -50,7 +50,6 @@ config_path = Path(__file__).parent.parent / "configuration" / "quam_state"
 machine = QuAM.load(config_path)
 # Generate the OPX and Octave configurations
 config = machine.generate_config()
-octave_config = machine.get_octave_config()
 # Open Communication with the QOP
 qmm = machine.connect()
 
@@ -71,12 +70,13 @@ inv_arr = np.linalg.inv(compensation_arr)
 # The QUA program #
 ###################
 qb = q1  # The qubit whose flux will be swept
-n_avg = 100
+n_avg = 60
 
 # The flux pulse durations in clock cycles (4ns) - Must be larger than 4 clock cycles.
 ts = np.arange(4, 300, 1)
 # The flux bias sweep in V
-dcs = np.linspace(-0.055, -0.025, 301)
+dcs = np.linspace(-0.055, 0.07, 501)
+# dcs = np.linspace(-0.045, -0.025, 701)
 
 
 with program() as cz:
@@ -106,7 +106,8 @@ with program() as cz:
                 # q1.z.set_dc_offset(0.0175 + vals[0])
                 # q2.z.set_dc_offset(q2.z.min_offset + vals[1])
                 
-                q1.z.set_dc_offset(0.0175 + 0.0509 * dc)
+                q1.z.set_dc_offset(0.0175 + 0.05 * dc)
+                q2.z.set_dc_offset(q2.z.min_offset)
                 # q2.z.set_dc_offset(q2.z.min_offset + 0.01 * dc)
 
                 coupler.set_dc_offset(dc)
@@ -114,11 +115,12 @@ with program() as cz:
                 align()
                 
                 # Put back the qubit to the max frequency point
-                coupler.set_dc_offset(-0.033)
-                q1.z.set_dc_offset(q1.z.min_offset + 0.051 * -0.033)
+                # coupler.set_dc_offset(-0.033)
+                # q1.z.set_dc_offset(q1.z.min_offset + 0.051 * -0.033)
                 # q2.z.set_dc_offset(q2.z.min_offset + 0.01 * -0.033)
 
-                # q1.z.to_min()
+                coupler.set_dc_offset(0)
+                q1.z.to_min()
                 q2.z.to_min()
 
                 # Wait some time to ensure that the flux pulse will end before the readout pulse

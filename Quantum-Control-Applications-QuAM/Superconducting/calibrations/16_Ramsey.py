@@ -46,21 +46,23 @@ u = unit(coerce_to_integer=True)
 machine = QuAM.load()
 # Generate the OPX and Octave configurations
 config = machine.generate_config()
-octave_config = machine.get_octave_config()
 # Open Communication with the QOP
 qmm = machine.connect()
 
 # Get the relevant QuAM components
 qubits = machine.active_qubits
 num_qubits = len(qubits)
+# q4 = machine.qubits["q4"]
+# q5 = machine.qubits["q5"]
+# coupler = (q4 @ q5).coupler
 
 ###################
 # The QUA program #
 ###################
-n_avg = 200
+n_avg = 400
 
 # Dephasing time sweep (in clock cycles = 4ns) - minimum is 4 clock cycles
-idle_times = np.arange(4, 4000, 4)
+idle_times = np.arange(4, 3000, 4)
 
 # Detuning converted into virtual Z-rotations to observe Ramsey oscillation and get the qubit frequency
 detuning = 1e6
@@ -75,6 +77,10 @@ with program() as ramsey:
     # Bring the active qubits to the minimum frequency point
     machine.apply_all_flux_to_min()
 
+    # # measure T2* at certain flux-point
+    # coupler.set_dc_offset(-0.034)
+    # q4.z.set_dc_offset(0.0175 + 0.05 * -0.034)  
+
     with for_(n, 0, n < n_avg, n + 1):
         save(n, n_st)
 
@@ -85,10 +91,10 @@ with program() as ramsey:
             align()
             # Strict_timing ensures that the sequence will be played without gaps
             with strict_timing_():
-                for qubit in qubits:
+                for qubit in [machine.qubits["q4"]]:
                     qubit.xy.play("x90")
+                    qubit.xy.frame_rotation_2pi(phi)
                     qubit.xy.wait(t)
-                    qubit.xy.frame_rotation(phi)
                     qubit.xy.play("x90")
 
             # Align the elements to measure after playing the qubit pulse.
@@ -194,9 +200,9 @@ else:
             )
 
             # Update the state
-            qubit_detuning = fit_I["f"][0] * u.GHz - detuning
-            qubit.T2ramsey = int(fit_I["T2"][0])
-            qubit.xy.RF_frequency += qubit_detuning
+            qubit_detuning = fit_I["f"][0] * u.GHz - detuning if detuning >= 0 else detuning + fit_I["f"][0] * u.GHz
+            # qubit.T2ramsey = int(fit_I["T2"][0])
+            # qubit.xy.RF_frequency -= qubit_detuning
             data[f"{qubit.name}"] = {
                 "T2*": qubit.T2ramsey,
                 "if_01": qubit.xy.intermediate_frequency,

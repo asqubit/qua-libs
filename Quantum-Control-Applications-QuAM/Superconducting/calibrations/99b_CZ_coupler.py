@@ -50,7 +50,6 @@ config_path = Path(__file__).parent.parent / "configuration" / "quam_state"
 machine = QuAM.load(config_path)
 # Generate the OPX and Octave configurations
 config = machine.generate_config()
-octave_config = machine.get_octave_config()
 # Open Communication with the QOP
 qmm = machine.connect()
 
@@ -76,7 +75,7 @@ n_avg = 100
 # The flux pulse durations in clock cycles (4ns) - Must be larger than 4 clock cycles.
 # The flux bias sweep in V
 dcs = np.linspace(-0.07, -0.025, 301)
-scales = np.linspace(0.035, 0.3, 51)
+scales = np.linspace(0.035, 0.06, 101)
 ts = scales
 
 
@@ -84,7 +83,7 @@ with program() as cz:
     I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=2)
     t = declare(int)  # QUA variable for the flux pulse duration
     dc = declare(fixed)  # QUA variable for the flux pulse amplitude
-    assign(t, 125)
+    assign(t, 10)
     scale = declare(fixed)
 
     # Bring the active qubits to the minimum frequency point

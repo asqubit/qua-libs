@@ -123,7 +123,7 @@
                         "length": 40,
                         "digital_marker": "ON",
                         "axis_angle": 0,
-                        "amplitude": 0.10606088699749519,
+                        "amplitude": 0.0,
                         "sigma": 7,
                         "alpha": 1.0,
                         "anharmonicity": "#/qubits/q1/anharmonicity",
@@ -246,7 +246,7 @@
                 "opx_output_Q": "#/ports/analog_outputs/con1/1/4",
                 "frequency_converter_up": "#/octaves/octave1/RF_outputs/2",
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
-                "RF_frequency": 5084894890.598245
+                "RF_frequency": 5085991173.037969
             },
             "z": {
                 "operations": {
@@ -293,7 +293,7 @@
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
                 "RF_frequency": 5912468322
             },
-            "T2ramsey": 4209,
+            "T2ramsey": 10256,
             "T2echo": 6550,
             "thermalization_time_factor": 10
         },
@@ -305,7 +305,7 @@
                         "length": 40,
                         "digital_marker": "ON",
                         "axis_angle": 0,
-                        "amplitude": 0.056295043593750024,
+                        "amplitude": 0.057702419683593784,
                         "sigma": 7,
                         "alpha": 0,
                         "anharmonicity": "#/qubits/q2/anharmonicity",
@@ -428,7 +428,7 @@
                 "opx_output_Q": "#/ports/analog_outputs/con1/1/6",
                 "frequency_converter_up": "#/octaves/octave1/RF_outputs/3",
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
-                "RF_frequency": 4434297190.867981
+                "RF_frequency": 4435435619.203428
             },
             "z": {
                 "operations": {
@@ -477,7 +477,7 @@
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
                 "RF_frequency": 6014258718
             },
-            "T2ramsey": 3256,
+            "T2ramsey": 5536,
             "T2echo": 40469,
             "thermalization_time_factor": 10
         },
@@ -489,7 +489,7 @@
                         "length": 40,
                         "digital_marker": "ON",
                         "axis_angle": 0,
-                        "amplitude": 0.047945330354264966,
+                        "amplitude": 0.049143963613121594,
                         "sigma": 7,
                         "alpha": 1.0,
                         "anharmonicity": "#/qubits/q3/anharmonicity",
@@ -612,7 +612,7 @@
                 "opx_output_Q": "#/ports/analog_outputs/con1/1/8",
                 "frequency_converter_up": "#/octaves/octave1/RF_outputs/4",
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
-                "RF_frequency": 4462720775.274484
+                "RF_frequency": 4463845899.950485
             },
             "z": {
                 "operations": {
@@ -661,7 +661,7 @@
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
                 "RF_frequency": 5856721101
             },
-            "T2ramsey": 2480,
+            "T2ramsey": 3589,
             "T2echo": 1678888165,
             "thermalization_time_factor": 10
         },
@@ -673,7 +673,7 @@
                         "length": 40,
                         "digital_marker": "ON",
                         "axis_angle": 0,
-                        "amplitude": 0.07857759533203126,
+                        "amplitude": 0.06644717905264895,
                         "sigma": 7,
                         "alpha": 1.0,
                         "anharmonicity": "#/qubits/q4/anharmonicity",
@@ -796,7 +796,7 @@
                 "opx_output_Q": "#/ports/analog_outputs/con1/2/2",
                 "frequency_converter_up": "#/octaves/octave2/RF_outputs/1",
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
-                "RF_frequency": 4414213069.469187
+                "RF_frequency": 4415399331.105587
             },
             "z": {
                 "operations": {
@@ -845,7 +845,7 @@
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
                 "RF_frequency": 6037421320
             },
-            "T2ramsey": 2023,
+            "T2ramsey": 2317,
             "T2echo": 11131,
             "thermalization_time_factor": 10
         },
@@ -857,7 +857,7 @@
                         "length": 40,
                         "digital_marker": "ON",
                         "axis_angle": 0,
-                        "amplitude": 0.08057997302530961,
+                        "amplitude": 0.08012671067704225,
                         "sigma": 7,
                         "alpha": 1.0,
                         "anharmonicity": "#/qubits/q5/anharmonicity",
@@ -980,7 +980,7 @@
                 "opx_output_Q": "#/ports/analog_outputs/con1/2/4",
                 "frequency_converter_up": "#/octaves/octave2/RF_outputs/2",
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
-                "RF_frequency": 4353193258.817741
+                "RF_frequency": 4354098902.981843
             },
             "z": {
                 "operations": {
@@ -1029,7 +1029,7 @@
                 "intermediate_frequency": "#./inferred_intermediate_frequency",
                 "RF_frequency": 5942238619
             },
-            "T2ramsey": 2150,
+            "T2ramsey": 4374,
             "T2echo": 25776,
             "thermalization_time_factor": 10
         }
@@ -1205,9 +1205,6 @@
                         "controller_id": "con1",
                         "fem_id": 3,
                         "port_id": 1,
-                        "crosstalk": {
-                            "8": 0.408
-                        },
                         "upsampling_mode": "pulse",
                         "output_mode": "amplified",
                         "__class__": "quam.components.ports.analog_outputs.LFFEMAnalogOutputPort"
@@ -1240,10 +1237,6 @@
                         "controller_id": "con1",
                         "fem_id": 3,
                         "port_id": 5,
-                        "crosstalk": {
-                            "8": 0.427,
-                            "1": 0.374
-                        },
                         "upsampling_mode": "pulse",
                         "output_mode": "amplified",
                         "__class__": "quam.components.ports.analog_outputs.LFFEMAnalogOutputPort"
@@ -1268,9 +1261,6 @@
                         "controller_id": "con1",
                         "fem_id": 3,
                         "port_id": 8,
-                        "crosstalk": {
-                            "1": 0.177
-                        },
                         "upsampling_mode": "pulse",
                         "output_mode": "amplified",
                         "__class__": "quam.components.ports.analog_outputs.LFFEMAnalogOutputPort"

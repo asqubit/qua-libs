@@ -48,24 +48,25 @@ u = unit(coerce_to_integer=True)
 machine = QuAM.load()
 # Generate the OPX and Octave configurations
 config = machine.generate_config()
-octave_config = machine.get_octave_config()
 # Open Communication with the QOP
 qmm = machine.connect()
 
 # Get the relevant QuAM components
-q1 = machine.active_qubits[0]
-q2 = machine.active_qubits[1]
+q1 = machine.active_qubits[3]
+q2 = machine.active_qubits[4]
+coupler = (q1 @ q2).coupler
 
 ###################
 # The QUA program #
 ###################
-qb = q2  # The qubit whose flux will be swept
-n_avg = 40
+qb = q1  # The qubit whose flux will be swept
+n_avg = 100
 
 # The flux pulse durations in clock cycles (4ns) - Must be larger than 4 clock cycles.
 ts = np.arange(4, 200, 1)
 # The flux bias sweep in V
-dcs = np.arange(-0.105, -0.10, 0.0001)
+dcs = np.linspace(0.0155, 0.0195, 201)
+coupler_bias = 0.01
 
 
 with program() as cz:
@@ -75,6 +76,7 @@ with program() as cz:
 
     # Bring the active qubits to the minimum frequency point
     machine.apply_all_flux_to_min()
+    coupler.set_dc_offset(coupler_bias)
 
     with for_(n, 0, n < n_avg, n + 1):
         save(n, n_st)
@@ -89,7 +91,7 @@ with program() as cz:
                 wait(20 * u.ns)
                 # Play a flux pulse on the qubit with the highest frequency to bring it close to the excited qubit while
                 # varying its amplitude and duration in order to observe the SWAP chevron.
-                qb.z.set_dc_offset(dc)
+                qb.z.set_dc_offset(dc + coupler_bias*(0.02218-0.01759)/0.01 )
                 wait(t, q2.z.name)
                 align()
                 # Put back the qubit to the max frequency point
@@ -153,7 +155,7 @@ else:
         plt.subplot(221)
         plt.cla()
         plt.pcolor(dcs, 4 * ts, I1)
-        plt.title(f"{q1.name} - I, f_01={int(q1.f_01 / u.MHz)} MHz")
+        # plt.title(f"{q1.name} - I, f_01={int(q1.f_01 / u.MHz)} MHz")
         plt.ylabel("Interaction time [ns]")
         plt.subplot(223)
         plt.cla()
@@ -164,7 +166,7 @@ else:
         plt.subplot(222)
         plt.cla()
         plt.pcolor(dcs, 4 * ts, I2)
-        plt.title(f"{q2.name} - I, f_01={int(q2.f_01 / u.MHz)} MHz")
+        # plt.title(f"{q2.name} - I, f_01={int(q2.f_01 / u.MHz)} MHz")
         plt.subplot(224)
         plt.cla()
         plt.pcolor(dcs, 4 * ts, Q2)
