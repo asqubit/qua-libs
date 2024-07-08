@@ -75,6 +75,7 @@ inv_arr = np.linalg.inv(compensation_arr)
 # The QUA program #
 ###################
 qb = q1  # The qubit whose flux will be swept
+<<<<<<< Updated upstream
 n_avg = 1000
 # The flux pulse durations in clock cycles (4ns) - Must be larger than 4 clock cycles.
 ts = np.arange(10, 35, 5)
