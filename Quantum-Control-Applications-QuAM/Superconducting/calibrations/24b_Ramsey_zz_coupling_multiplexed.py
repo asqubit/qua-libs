@@ -91,7 +91,9 @@ def play_ramsey_zz_multiplexed(qt: Transmon, qc: Transmon, st, t):
     with strict_timing_():
         with if_(st == 1):
             qc.xy.play("x180")
-            wait(qc.xy.operations["x180"].length * u.ns, *[q.name for q in qubits if q])
+            for q in qubits:
+                if q.name != qc.name:
+                    q.xy.wait(qc.xy.operations["x180"].length * u.ns)
         qt.xy.play("x90")
         qt.xy.frame_rotation_2pi(phi)
         qt.xy.wait(t)
