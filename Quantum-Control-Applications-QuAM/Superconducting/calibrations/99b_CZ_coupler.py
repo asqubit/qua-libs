@@ -106,7 +106,7 @@ with program() as cz:
                 # varying its amplitude and duration in order to observe the SWAP chevron.
                 
                 # vals = inv_arr @ [compensations[q1] * dc, compensations[q2] * dc]
-                q1.z.set_dc_offset(0.0175 + scale * dc)
+                q1.z.set_dc_offset(-0.01368 + scale * dc) # 0.0175
                 q2.z.set_dc_offset(q2.z.min_offset)
                 
                 coupler.set_dc_offset(dc)

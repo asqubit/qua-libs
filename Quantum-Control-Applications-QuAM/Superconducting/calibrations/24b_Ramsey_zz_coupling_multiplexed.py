@@ -64,14 +64,14 @@ states = [0, 1]
 ###################
 # The QUA program #
 ###################
-n_avg = 100
+n_avg = 30
 
 # Dephasing time sweep (in clock cycles = 4ns) - minimum is 4 clock cycles
-idle_times = np.arange(4, 3000, 4)
+idle_times = np.arange(4, 1000, 4)
 
 # The flux bias sweep in V
 #dcs_coupler = np.linspace(-0.01, 0.01, 3) # -0.034
-dcs_coupler = np.linspace(-0.049, 0.011, 13) # -0.034
+dcs_coupler = np.linspace(-0.036, -0.032, 14) # -0.034
 dcs_q1 = 0.0175 + 0.05 * dcs_coupler # 0.0175 + 0.05 * -0.034
 dcs_q2 = q2.z.min_offset * np.ones(len(dcs_coupler))
 num_dcs = len(dcs_coupler)
@@ -88,16 +88,17 @@ def play_ramsey_zz_multiplexed(qt: Transmon, qc: Transmon, st, t):
     assign(phi, Cast.mul_fixed_by_int(detuning * 1e-9, 4 * t))
     align()
     # Strict_timing ensures that the sequence will be played without gaps
-    with strict_timing_():
-        with if_(st == 1):
-            qc.xy.play("x180")
-            for q in qubits:
-                if q.name != qc.name:
-                    q.xy.wait(qc.xy.operations["x180"].length * u.ns)
-        qt.xy.play("x90")
-        qt.xy.frame_rotation_2pi(phi)
-        qt.xy.wait(t)
-        qt.xy.play("x90")
+    # with strict_timing_():
+    with if_(st == 1):
+        qc.xy.play("x180")
+        align()
+        # for q in qubits:
+        #     if q.name != qc.name:
+        #         q.xy.wait(qc.xy.operations["x180"].length * u.ns)
+    qt.xy.play("x90")
+    qt.xy.frame_rotation_2pi(phi)
+    qt.xy.wait(t)
+    qt.xy.play("x90")
 
     # Align the elements to measure after playing the qubit pulse.
     align()

@@ -65,8 +65,8 @@ n_avg = 100
 # The flux pulse durations in clock cycles (4ns) - Must be larger than 4 clock cycles.
 ts = np.arange(4, 200, 1)
 # The flux bias sweep in V
-dcs = np.linspace(0.0155, 0.0195, 201)
-coupler_bias = 0.01
+dcs = np.linspace(-0.02, 0.0, 201)
+coupler_bias = -0.02
 
 
 with program() as cz:
@@ -91,7 +91,7 @@ with program() as cz:
                 wait(20 * u.ns)
                 # Play a flux pulse on the qubit with the highest frequency to bring it close to the excited qubit while
                 # varying its amplitude and duration in order to observe the SWAP chevron.
-                qb.z.set_dc_offset(dc + coupler_bias*(0.02218-0.01759)/0.01 )
+                qb.z.set_dc_offset(dc + coupler_bias*0.05 )
                 wait(t, q2.z.name)
                 align()
                 # Put back the qubit to the max frequency point

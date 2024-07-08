@@ -52,9 +52,13 @@ qmm = machine.connect()
 # Get the relevant QuAM components
 qubits = machine.active_qubits
 num_qubits = len(qubits)
-# q4 = machine.qubits["q4"]
-# q5 = machine.qubits["q5"]
-# coupler = (q4 @ q5).coupler
+q3 = machine.qubits["q3"]
+q4 = machine.qubits["q4"]
+q5 = machine.qubits["q5"]
+coupler = (q4 @ q5).coupler
+apply_pi = True
+# qubits_wo_q5 = [q for q in machine.active_qubits if q.name != "q5"]
+# qubits_wo_q3 = [q for q in machine.active_qubits if q.name != "q3"]
 
 ###################
 # The QUA program #
@@ -62,10 +66,10 @@ num_qubits = len(qubits)
 n_avg = 400
 
 # Dephasing time sweep (in clock cycles = 4ns) - minimum is 4 clock cycles
-idle_times = np.arange(4, 3000, 4)
+idle_times = np.arange(4, 300, 4)
 
 # Detuning converted into virtual Z-rotations to observe Ramsey oscillation and get the qubit frequency
-detuning = 1e6
+detuning = 2e6
 
 with program() as ramsey:
     I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=num_qubits)
@@ -76,10 +80,10 @@ with program() as ramsey:
 
     # Bring the active qubits to the minimum frequency point
     machine.apply_all_flux_to_min()
-
+    coupler.set_dc_offset(0.0)
     # # measure T2* at certain flux-point
-    # coupler.set_dc_offset(-0.034)
-    # q4.z.set_dc_offset(0.0175 + 0.05 * -0.034)  
+    # coupler.set_dc_offset(-0.039)
+    # q4.z.set_dc_offset(q4.z.min_offset + 0.05 * -0.039)  
 
     with for_(n, 0, n < n_avg, n + 1):
         save(n, n_st)
@@ -91,7 +95,15 @@ with program() as ramsey:
             align()
             # Strict_timing ensures that the sequence will be played without gaps
             with strict_timing_():
-                for qubit in [machine.qubits["q4"]]:
+                if apply_pi:
+                    q4.xy.play("x180")
+                    for qubit in qubits:
+                        if qubit.name != "q4":
+                            qubit.xy.wait(q4.xy.operations["x180"].length * u.ns)
+                    # wait(q5.xy.operations["x180"].length * u.ns, [q.xy.operations["x180"].name for q in machine.active_qubits if q.name != "q5"])
+
+                # for qubit in [machine.qubits["q4"]]:
+                for qubit in qubits:
                     qubit.xy.play("x90")
                     qubit.xy.frame_rotation_2pi(phi)
                     qubit.xy.wait(t)
