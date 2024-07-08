@@ -59,7 +59,7 @@ qubits = [q1, q2]
 num_qubits = len(qubits)
 q1_idx = machine.active_qubit_names.index(q1.name)
 q2_idx = machine.active_qubit_names.index(q2.name)
-states = [0, 0]
+states = [0, 1]
 
 ###################
 # The QUA program #
@@ -71,9 +71,12 @@ idle_times = np.arange(4, 3000, 4)
 
 # The flux bias sweep in V
 #dcs_coupler = np.linspace(-0.01, 0.01, 3) # -0.034
-dcs_coupler = np.linspace(0.00, 0.01, 2) # -0.034
-dc_q1 = 0.0 # 0.0175 + 0.05 * -0.034
-dc_q2 = 0.0
+dcs_coupler = np.linspace(-0.049, 0.011, 13) # -0.034
+dcs_q1 = 0.0175 + 0.05 * dcs_coupler # 0.0175 + 0.05 * -0.034
+dcs_q2 = q2.z.min_offset * np.ones(len(dcs_coupler))
+num_dcs = len(dcs_coupler)
+assert len(dcs_q1) == num_dcs
+assert len(dcs_q2) == num_dcs
 
 # Detuning converted into virtual Z-rotations to observe Ramsey oscillation and get the qubit frequency
 detuning = 1e6
@@ -88,6 +91,7 @@ def play_ramsey_zz_multiplexed(qt: Transmon, qc: Transmon, st, t):
     with strict_timing_():
         with if_(st == 1):
             qc.xy.play("x180")
+            wait(qc.xy.operations["x180"].length * u.ns, *[q.name for q in qubits if q])
         qt.xy.play("x90")
         qt.xy.frame_rotation_2pi(phi)
         qt.xy.wait(t)
@@ -107,7 +111,9 @@ with program() as ramsey:
     I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=num_qubits_full)
     t = declare(int)  # QUA variable for the idle time
     phi = declare(fixed)  # QUA variable for dephasing the second pi/2 pulse (virtual Z-rotation)
-    dc = declare(fixed)  # QUA variable for the coupler bias
+    dc_coupler = declare(fixed)  # QUA variable for the coupler bias
+    dc_q1 = declare(fixed)  # QUA variable for q1 bias
+    dc_q2 = declare(fixed)  # QUA variable for q2 bias
     st = declare(int)
 
     # Bring the active qubits to the minimum frequency point
@@ -116,29 +122,25 @@ with program() as ramsey:
     with for_(n, 0, n < n_avg, n + 1):
         save(n, n_st)
 
-        # measure T2* at certain flux-point
-        q1.z.set_dc_offset(dc_q1)
-        q2.z.set_dc_offset(dc_q2)
-
-        with for_(*from_array(dc, dcs_coupler)):
-            coupler.set_dc_offset(dc)
+        with for_each_((dc_coupler, dc_q1, dc_q2), (dcs_coupler, dcs_q1, dcs_q2)):
+            coupler.set_dc_offset(dc_coupler)
+            q1.z.set_dc_offset(dc_q1)
+            q2.z.set_dc_offset(dc_q2)
             wait(100)
 
-            with for_each_(st, states):
-                with for_(*from_array(t, idle_times)):
+            with for_(*from_array(t, idle_times)):
+                with for_each_(st, states):
                     # ramsey on q1 with q2 in 0 or 1
                     play_ramsey_zz_multiplexed(qt=q1, qc=q2, st=st, t=t)
 
-            with for_each_(st, states):
-                with for_(*from_array(t, idle_times)):
                     # ramsey on q2 with q1 in 0 or 1
                     play_ramsey_zz_multiplexed(qt=q2, qc=q1, st=st, t=t)
 
     with stream_processing():
         n_st.save("n")
         for i in range(num_qubits_full):
-            I_st[i].buffer(len(idle_times)).buffer(len(states)).buffer(2).buffer(len(dcs_coupler)).average().save(f"I{i + 1}")
-            Q_st[i].buffer(len(idle_times)).buffer(len(states)).buffer(2).buffer(len(dcs_coupler)).average().save(f"Q{i + 1}")
+            I_st[i].buffer(2).buffer(len(states)).buffer(len(idle_times)).buffer(num_dcs).average().save(f"I{i + 1}")
+            Q_st[i].buffer(2).buffer(len(states)).buffer(len(idle_times)).buffer(num_dcs).average().save(f"Q{i + 1}")
 
 
 ###########################
@@ -187,11 +189,11 @@ else:
             for j, state in enumerate(states):
                 k = 2 * i + j
                 axes[0, k].cla()
-                axes[0, k].pcolor(4 * idle_times, dcs_coupler, I_volts[i][:, i, j, :])
+                axes[0, k].pcolor(4 * idle_times, dcs_coupler, I_volts[i][:, :, j, i])
                 axes[0, k].set_ylabel("coupler bias [V]")
                 axes[0, k].set_title(f"I: {qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>)")
                 axes[1, k].cla()
-                axes[1, k].pcolor(4 * idle_times, dcs_coupler, Q_volts[i][:, i, j, :])
+                axes[1, k].pcolor(4 * idle_times, dcs_coupler, Q_volts[i][:, :, j, i])
                 axes[1, k].set_xlabel("Idle time [ns]")
                 axes[1, k].set_ylabel("coupler bias [V]")
                 axes[1, k].set_title(f"Q: {qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>)")
@@ -225,29 +227,29 @@ else:
                     from qualang_tools.plot.fitting import Fit
 
                     plt.subplot(2, 2, 2 * k + 1)
-                    fit_I = Fit().ramsey(4 * idle_times, I_volts[i][j, i, k, :], plot=True)
+                    fit_I = Fit().ramsey(4 * idle_times, I_volts[i][j, :, k, i], plot=True)
                     fit_detuning = int(fit_I['f'][0] * u.GHz - detuning) # fit_I["f"][0] * u.GHz - detuning if detuning >= 0 else detuning + fit_I["f"][0] * u.GHz
                     fit_result["I"][i, j, k] = fit_detuning
                     plt.xlabel("Idle time [ns]")
                     plt.ylabel("I [V]")
                     plt.title(f"{qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>): I")
-                    plt.legend(f"T2* = {int(fit_I['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz")
+                    plt.legend((f"T2* = {int(fit_I['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz",))
 
                     plt.subplot(2, 2, 2 * k + 2)
-                    fit_Q = Fit().ramsey(4 * idle_times, Q_volts[i][j, i, k, :], plot=True)
+                    fit_Q = Fit().ramsey(4 * idle_times, Q_volts[i][j, :, k, i], plot=True)
                     fit_detuning = int(fit_Q['f'][0] * u.GHz - detuning) # fit_I["f"][0] * u.GHz - detuning if detuning >= 0 else detuning + fit_I["f"][0] * u.GHz
                     fit_result["Q"][i, j, k] = fit_detuning
                     plt.xlabel("Idle time [ns]")
                     plt.ylabel("Q [V]")
                     plt.title(f"{qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>): Q")
-                    plt.legend(f"T2* = {int(fit_Q['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz")
+                    plt.legend((f"T2* = {int(fit_Q['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz",))
 
                     plt.tight_layout()
                     # Update the state
                     # qubit_detuning = fit_I["f"][0] * u.GHz - detuning if detuning >= 0 else detuning + fit_I["f"][0] * u.GHz
                     # qubit.T2ramsey = int(fit_I["T2"][0])
                     # qubit.xy.RF_frequency -= qubit_detuning
-                    suffix = f"{qubit.name}_with_{qubits[(i + 1) % 2].name}_coupler_bias={dc:4.3f}V_state={state}"
+                    suffix = f"{qubit.name}_with_{qubits[(i + 1) % 2].name}_coupler_bias={dc}V_state={state}".replace('.', '-')
                     # data[f"{qubit.name}_{suffix}"] = {
                     #     "q_target": qubit.name,
                     #     "q_control": qubits[(i + 1) % 2].name,
