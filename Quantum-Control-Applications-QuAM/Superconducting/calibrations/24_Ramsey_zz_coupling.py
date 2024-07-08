@@ -50,62 +50,73 @@ config = machine.generate_config()
 qmm = machine.connect()
 
 # Get the relevant QuAM components
+num_qubits_full = len(machine.active_qubits)
+
 q1 = machine.qubits["q4"]
 q2 = machine.qubits["q5"]
 coupler = (q1 @ q2).coupler
 qubits = [q1, q2]
 num_qubits = len(qubits)
+q1_idx = machine.active_qubit_names.index(q1.name)
+q2_idx = machine.active_qubit_names.index(q2.name)
 states = [0, 1]
 
 ###################
 # The QUA program #
 ###################
-n_avg = 100
+n_avg = 4
 
 # Dephasing time sweep (in clock cycles = 4ns) - minimum is 4 clock cycles
-idle_times = np.arange(4, 3000, 4)
+idle_times = np.arange(4, 200, 4)
 
 # The flux bias sweep in V
-dcs_coupler = np.linspace(-0.04, 0.01, 11) # -0.034
-dc_q1 = 0.0 # 0.0175 + 0.05 * -0.034
-dc_q2 = 0.0
+#dcs_coupler = np.linspace(-0.01, 0.01, 3) # -0.034
+dcs_coupler = np.linspace(-0.036, -0.032, 3) # -0.034
+dcs_q1 = 0.0175 + 0.05 * dcs_coupler # 0.0175 + 0.05 * -0.034
+dcs_q2 = q2.z.min_offset * np.ones(len(dcs_coupler))
+num_dcs = len(dcs_coupler)
+assert len(dcs_q1) == num_dcs
+assert len(dcs_q2) == num_dcs
 
 # Detuning converted into virtual Z-rotations to observe Ramsey oscillation and get the qubit frequency
 detuning = 1e6
 
 
-def play_ramsey_zz(qc: Transmon, qt: Transmon, st, t, idx: int = 0):
+def play_ramsey_zz_multiplexed(qt: Transmon, qc: Transmon, st, t):
     # Rotate the frame of the second x90 gate to implement a virtual Z-rotation
     # 4*tau because tau was in clock cycles and 1e-9 because tau is ns
     assign(phi, Cast.mul_fixed_by_int(detuning * 1e-9, 4 * t))
     align()
     # Strict_timing ensures that the sequence will be played without gaps
-    with strict_timing_():
-        with if_(st == 1):
-            qc.xy.play("x180")
-        qt.xy.play("x90")
-        qt.xy.frame_rotation_2pi(phi)
-        qt.xy.wait(t)
-        qt.xy.play("x90")
+    # with strict_timing_():
+    with if_(st == 1):
+        qc.xy.play("x180")
+        align()
+        # for q in qubits:
+        #     if q.name != qc.name:
+        #         q.xy.wait(qc.xy.operations["x180"].length * u.ns)
+    qt.xy.play("x90")
+    qt.xy.frame_rotation_2pi(phi)
+    qt.xy.wait(t)
+    qt.xy.play("x90")
 
     # Align the elements to measure after playing the qubit pulse.
     align()
     # Measure the state of the resonators
-    qt.resonator.measure("readout", qua_vars=(I[idx], Q[idx]))
+    multiplexed_readout(machine.active_qubits, I, I_st, Q, Q_st)
     # Wait for the qubits to decay to the ground state
     wait(machine.thermalization_time * u.ns)
     # Reset the frame of the qubits in order not to accumulate rotations
     reset_frame(qt.xy.name)
 
-    save(I[idx], I_st[idx])
-    save(Q[idx], Q_st[idx])
-
 
 with program() as ramsey:
-    I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=num_qubits)
+    I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=num_qubits_full)
     t = declare(int)  # QUA variable for the idle time
     phi = declare(fixed)  # QUA variable for dephasing the second pi/2 pulse (virtual Z-rotation)
-    dc = declare(fixed)  # QUA variable for the coupler bias
+    dc_coupler = declare(fixed)  # QUA variable for the coupler bias
+    dc_q1 = declare(fixed)  # QUA variable for q1 bias
+    dc_q2 = declare(fixed)  # QUA variable for q2 bias
     st = declare(int)
 
     # Bring the active qubits to the minimum frequency point
@@ -114,28 +125,25 @@ with program() as ramsey:
     with for_(n, 0, n < n_avg, n + 1):
         save(n, n_st)
 
-        # measure T2* at certain flux-point
-        q1.z.set_dc_offset(dc_q1)  
-        q2.z.set_dc_offset(dc_q2)  
-
-        with for_(*from_array(dc, dcs_coupler)):
-            coupler.set_dc_offset(dc)
+        with for_each_((dc_coupler, dc_q1, dc_q2), (dcs_coupler, dcs_q1, dcs_q2)):
+            coupler.set_dc_offset(dc_coupler)
+            q1.z.set_dc_offset(dc_q1)
+            q2.z.set_dc_offset(dc_q2)
             wait(100)
 
             with for_(*from_array(t, idle_times)):
                 with for_each_(st, states):
                     # ramsey on q1 with q2 in 0 or 1
-                    play_ramsey_zz(qc=q2, qt=q1, st=st, t=t, idx=0)
+                    play_ramsey_zz_multiplexed(qt=q1, qc=q2, st=st, t=t)
 
                     # ramsey on q2 with q1 in 0 or 1
-                    play_ramsey_zz(qc=q1, qt=q2, st=st, t=t, idx=1)
-
+                    play_ramsey_zz_multiplexed(qt=q2, qc=q1, st=st, t=t)
 
     with stream_processing():
         n_st.save("n")
-        for i in range(num_qubits):
-            I_st[i].buffer(2).buffer(len(idle_times)).buffer(len(dcs_coupler)).average().save(f"I{i + 1}")
-            Q_st[i].buffer(2).buffer(len(idle_times)).buffer(len(dcs_coupler)).average().save(f"Q{i + 1}")
+        for i in range(num_qubits_full):
+            I_st[i].buffer(2).buffer(len(states)).buffer(len(idle_times)).buffer(num_dcs).average().save(f"I{i + 1}")
+            Q_st[i].buffer(2).buffer(len(states)).buffer(len(idle_times)).buffer(num_dcs).average().save(f"Q{i + 1}")
 
 
 ###########################
@@ -145,10 +153,17 @@ simulate = False
 
 if simulate:
     # Simulates the QUA program for the specified duration
-    simulation_config = SimulationConfig(duration=10_000)  # In clock cycles = 4ns
+    simulation_config = SimulationConfig(duration=20_000)  # In clock cycles = 4ns
     job = qmm.simulate(config, ramsey, simulation_config)
     job.get_simulated_samples().con1.plot()
+    plt.show()
 else:
+    from qm import generate_qua_script
+
+    sourceFile = open('debug.py', 'w')
+    print(generate_qua_script(ramsey, config), file=sourceFile) 
+    sourceFile.close()
+
     # Open the quantum machine
     qm = qmm.open_qm(config)
     # Calibrate the active qubits
@@ -156,7 +171,7 @@ else:
     # Send the QUA program to the OPX, which compiles and executes it
     job = qm.execute(ramsey)
     # Get results from QUA program
-    data_list = ["n"] + sum([[f"I{i + 1}", f"Q{i + 1}"] for i in range(num_qubits)], [])
+    data_list = ["n"] + sum([[f"I{i + 1}", f"Q{i + 1}"] for i in [q1_idx, q2_idx]], [])
     results = fetching_tool(job, data_list, mode="live")
     # Live plotting
     fig, axes = plt.subplots(2, 2 * num_qubits, figsize=(2 * 4 * num_qubits, 8))
@@ -184,11 +199,11 @@ else:
             for j, state in enumerate(states):
                 k = 2 * i + j
                 axes[0, k].cla()
-                axes[0, k].pcolor(4 * idle_times, dcs_coupler, I_volts[i][..., state])
+                axes[0, k].pcolor(4 * idle_times, dcs_coupler, I_volts[i][:, :, j, i])
                 axes[0, k].set_ylabel("coupler bias [V]")
                 axes[0, k].set_title(f"I: {qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>)")
                 axes[1, k].cla()
-                axes[1, k].pcolor(4 * idle_times, dcs_coupler, Q_volts[i][..., state])
+                axes[1, k].pcolor(4 * idle_times, dcs_coupler, Q_volts[i][:, :, j, i])
                 axes[1, k].set_xlabel("Idle time [ns]")
                 axes[1, k].set_ylabel("coupler bias [V]")
                 axes[1, k].set_title(f"Q: {qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>)")
@@ -200,9 +215,9 @@ else:
 
     # Save data from the node
     data = {}
-    for i, (qubit, dc) in enumerate(zip(qubits, [dc_q1, dc_q2])):
+    for i, (qubit, dcs_q) in enumerate(zip(qubits, [dcs_q1, dcs_q2])):
         data[f"{qubit.name}_idle_times"] = 4 * idle_times
-        data[f"{qubit.name}_dc"] = dc
+        data[f"{qubit.name}_dc"] = dcs_q
         data[f"{qubit.name}_I"] = I_volts[i]
         data[f"{qubit.name}_Q"] = Q_volts[i]
     data[f"{coupler.name}_dcs"] = dcs_coupler
@@ -222,29 +237,29 @@ else:
                     from qualang_tools.plot.fitting import Fit
 
                     plt.subplot(2, 2, 2 * k + 1)
-                    fit_I = Fit().ramsey(4 * idle_times, I_volts[i][j, :, k], plot=True)
+                    fit_I = Fit().ramsey(4 * idle_times, I_volts[i][j, :, k, i], plot=True)
                     fit_detuning = int(fit_I['f'][0] * u.GHz - detuning) # fit_I["f"][0] * u.GHz - detuning if detuning >= 0 else detuning + fit_I["f"][0] * u.GHz
                     fit_result["I"][i, j, k] = fit_detuning
                     plt.xlabel("Idle time [ns]")
                     plt.ylabel("I [V]")
                     plt.title(f"{qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>): I")
-                    plt.legend((f"T2* = {int(fit_I['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz"))
+                    plt.legend((f"T2* = {int(fit_I['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz",))
 
                     plt.subplot(2, 2, 2 * k + 2)
-                    fit_Q = Fit().ramsey(4 * idle_times, Q_volts[i][j, :, k], plot=True)
+                    fit_Q = Fit().ramsey(4 * idle_times, Q_volts[i][j, :, k, i], plot=True)
                     fit_detuning = int(fit_Q['f'][0] * u.GHz - detuning) # fit_I["f"][0] * u.GHz - detuning if detuning >= 0 else detuning + fit_I["f"][0] * u.GHz
                     fit_result["Q"][i, j, k] = fit_detuning
                     plt.xlabel("Idle time [ns]")
                     plt.ylabel("Q [V]")
                     plt.title(f"{qubit.name} ({qubits[(i + 1) % 2].name}=|{state}>): Q")
-                    plt.legend((f"T2* = {int(fit_Q['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz"))
+                    plt.legend((f"T2* = {int(fit_Q['T2'][0])} ns\n df = {fit_detuning / u.kHz} kHz",))
 
                     plt.tight_layout()
                     # Update the state
                     # qubit_detuning = fit_I["f"][0] * u.GHz - detuning if detuning >= 0 else detuning + fit_I["f"][0] * u.GHz
                     # qubit.T2ramsey = int(fit_I["T2"][0])
                     # qubit.xy.RF_frequency -= qubit_detuning
-                    suffix = f"{qubit.name}_with_{qubits[(i + 1) % 2].name}_coupler_bias={dc}V_state={state}"
+                    suffix = f"{qubit.name}_with_{qubits[(i + 1) % 2].name}_coupler_bias={dc}V_state={state}".replace('.', '-')
                     # data[f"{qubit.name}_{suffix}"] = {
                     #     "q_target": qubit.name,
                     #     "q_control": qubits[(i + 1) % 2].name,
@@ -282,9 +297,11 @@ else:
         axes[1, k].set_title(f"ZZ Coupling: {quad}")
         axes[1, k].legend([q.name for q in qubits])
     plt.tight_layout()
+    data[f"figure_analysis_zz_coupling"] = fig_analysis2
+    
     plt.show()
-
+    
     # Save data from the node
-    node_save(machine, "ramsey_zz_coupling_single", data, additional_files=True)
+    node_save(machine, "ramsey_zz_coupling", data, additional_files=True)
 
 # %%

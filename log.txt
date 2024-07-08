@@ -1,0 +1,45 @@
+(qpx-20) C:\Users\ASQUM_2\Documents\GitHub\PYQUM\TEST\BETAsite\QM\OPX1000\qua-libs>C:/Users/ASQUM_2/anaconda3/envs/qpx-20/python.exe c:/Users/ASQUM_2/Documents/GitHub/PYQUM/TEST/BETAsite/QM/OPX1000/qua-libs/Quantum-Control-Applications-QuAM/Superconducting/calibrations/24b_Ramsey_zz_coupling_multiplexed.py
+2024-07-08 16:24:54,672 - qm - INFO     - Starting session: 1836094f-ce70-443a-959e-89067ca0f453
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/2/5 from FluxLine
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/6 from FluxLine
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/7 from FluxLine
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/8 from FluxLine
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/1 from FluxLine
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/2 from TunableCoupler
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/3 from TunableCoupler
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/4 from TunableCoupler
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\quam\core\quam_classes.py:475: UserWarning: No QuamRoot initialized, cannot retrieve reference #/ports/analog_outputs/con1/3/5 from TunableCoupler
+  warnings.warn(
+C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\qm\quantum_machines_manager.py:130: DeprecationWarning: QMM was opened with OctaveConfig. Please note that from QOP2.4.0 the octave devices are managed by the cluster setting in the QM-app. It is recommended to remove the OctaveConfig from the QMM instantiation.
+  warnings.warn(
+2024-07-08 16:25:15,836 - qm - INFO     - Octave "octave1" Health check passed, current temperature 58
+2024-07-08 16:25:17,066 - qm - INFO     - Octave "octave2" Health check passed, current temperature 59
+2024-07-08 16:25:18,189 - qm - INFO     - Octave "octave3" Health check passed, current temperature 57
+2024-07-08 16:25:18,192 - qm - INFO     - Performing health check
+2024-07-08 16:25:18,205 - qm - INFO     - Cluster healthcheck completed successfully.
+2024-07-08 16:25:26,502 - qm - INFO     - Adding program to queue.
+Traceback (most recent call last):                           ] 23.3% (n=7/30) --> elapsed time: 7.12s
+  File "c:\Users\ASQUM_2\Documents\GitHub\PYQUM\TEST\BETAsite\QM\OPX1000\qua-libs\Quantum-Control-Applications-QuAM\Superconducting\calibrations\24b_Ramsey_zz_coupling_multiplexed.py", line 174, in <module>
+    fetched_data = results.fetch_all()
+                   ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\qualang_tools\results\results.py", line 94, in fetch_all
+    self.results.append(self._format(self.data_handles[i].fetch_all()))
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\qm\results\single_streaming_result_fetcher.py", line 40, in fetch_all
+    return self.fetch(0, flat_struct=flat_struct, check_for_errors=check_for_errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\qm\results\single_streaming_result_fetcher.py", line 68, in fetch
+    value = self.strict_fetch(0, check_for_errors=check_for_errors, flat_struct=flat_struct)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASQUM_2\anaconda3\envs\qpx-20\Lib\site-packages\qm\results\base_streaming_result_fetcher.py", line 415, in strict_fetch
+    raise StreamProcessingDataLossError(f"Data loss detected in data for job: {self._job_id}")
+qm.exceptions.StreamProcessingDataLossError: Data loss detected in data for job: 3b7b52ee-0d24-43ea-bd50-cf8669e3e341
+Execution stopped by user!

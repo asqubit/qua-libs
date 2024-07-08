@@ -1042,8 +1042,8 @@
             "coupler": {
                 "operations": {
                     "const": {
-                        "length": 100,
-                        "amplitude": 0.1,
+                        "length": 40,
+                        "amplitude": -0.03832,
                         "__class__": "quam.components.pulses.SquarePulse"
                     }
                 },
@@ -1058,8 +1058,8 @@
             "coupler": {
                 "operations": {
                     "const": {
-                        "length": 100,
-                        "amplitude": 0.1,
+                        "length": 40,
+                        "amplitude": -0.03832,
                         "__class__": "quam.components.pulses.SquarePulse"
                     }
                 },
@@ -1074,8 +1074,8 @@
             "coupler": {
                 "operations": {
                     "const": {
-                        "length": 100,
-                        "amplitude": 0.1,
+                        "length": 40,
+                        "amplitude": -0.03832,
                         "__class__": "quam.components.pulses.SquarePulse"
                     }
                 },
@@ -1090,8 +1090,8 @@
             "coupler": {
                 "operations": {
                     "const": {
-                        "length": 100,
-                        "amplitude": 0.1,
+                        "length": 40,
+                        "amplitude": -0.03832,
                         "__class__": "quam.components.pulses.SquarePulse"
                     }
                 },

@@ -1,3 +1,4 @@
+# %%
 """
         CZ CHEVRON - 4ns granularity
 The goal of this protocol is to find the parameters of the CZ gate between two flux-tunable qubits.
@@ -39,6 +40,10 @@ from quam_libs.components import QuAM
 from quam_libs.macros import qua_declaration, multiplexed_readout, node_save
 
 
+import matplotlib
+
+matplotlib.use("TKAgg")
+
 ###################################################
 #  Load QuAM and open Communication with the QOP  #
 ###################################################
@@ -70,14 +75,12 @@ inv_arr = np.linalg.inv(compensation_arr)
 # The QUA program #
 ###################
 qb = q1  # The qubit whose flux will be swept
-n_avg = 60
-
+n_avg = 1000
 # The flux pulse durations in clock cycles (4ns) - Must be larger than 4 clock cycles.
-ts = np.arange(4, 300, 1)
+ts = np.arange(10, 35, 5)
 # The flux bias sweep in V
-dcs = np.linspace(-0.055, 0.07, 501)
+dcs = np.linspace(-0.040, -0.030, 201)
 # dcs = np.linspace(-0.045, -0.025, 701)
-
 
 with program() as cz:
     I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=2)
@@ -107,7 +110,7 @@ with program() as cz:
                 # q2.z.set_dc_offset(q2.z.min_offset + vals[1])
                 
                 q1.z.set_dc_offset(0.0175 + 0.05 * dc)
-                q2.z.set_dc_offset(q2.z.min_offset)
+                # q2.z.set_dc_offset(q2.z.min_offset)
                 # q2.z.set_dc_offset(q2.z.min_offset + 0.01 * dc)
 
                 coupler.set_dc_offset(dc)
@@ -178,31 +181,61 @@ else:
         progress_counter(n, n_avg, start_time=results.start_time)
         # Plot
         plt.suptitle("CZ chevron")
-        plt.subplot(221)
+        plt.subplot(241)
         plt.cla()
         plt.pcolor(dcs, 4 * ts, I1)
         # plt.title(f"{q1.name} - I, f_01={int(q1.f_01 / u.MHz)} MHz")
         plt.ylabel("Interaction time [ns]")
-        plt.subplot(223)
+        plt.subplot(243)
         plt.cla()
         plt.pcolor(dcs, 4 * ts, Q1)
         plt.title(f"{q1.name} - Q")
         plt.xlabel("Flux amplitude [V]")
         plt.ylabel("Interaction time [ns]")
-        plt.subplot(222)
+        plt.subplot(242)
         plt.cla()
         plt.pcolor(dcs, 4 * ts, I2)
         # plt.title(f"{q2.name} - I, f_01={int(q2.f_01 / u.MHz)} MHz")
-        plt.subplot(224)
+        plt.subplot(244)
         plt.cla()
         plt.pcolor(dcs, 4 * ts, Q2)
         plt.title(f"{q2.name} - Q")
         plt.xlabel("Flux amplitude [V]")
+
+        plt.subplot(245)
+        plt.cla()
+        for j, t in enumerate(ts):
+            plt.plot(dcs, I1[j, :])
+        # plt.title(f"{q1.name} - I, f_01={int(q1.f_01 / u.MHz)} MHz")
+        plt.ylabel("I1 [V]")
+        plt.legend([f"{4 * t}" for t in ts])
+        plt.subplot(247)
+        plt.cla()
+        for j, t in enumerate(ts):
+            plt.plot(dcs, Q1[j, :])
+        plt.title(f"{q1.name} - Q")
+        plt.xlabel("Flux amplitude [V]")
+        plt.ylabel("Q1 [V]")
+        plt.subplot(246)
+        plt.cla()
+        for j, t in enumerate(ts):
+            plt.plot(dcs, I2[j, :])
+        plt.ylabel("I2 [V]")
+        # plt.title(f"{q2.name} - I, f_01={int(q2.f_01 / u.MHz)} MHz")
+        plt.subplot(248)
+        plt.cla()
+        for j, t in enumerate(ts):
+            plt.plot(dcs, Q2[j, :])
+        plt.ylabel("Q2 [V]")
+        plt.title(f"{q2.name} - Q")
+        plt.xlabel("Flux amplitude [V]")
         plt.tight_layout()
-        plt.pause(0.1)
+        plt.pause(0.3)
 
     # Close the quantum machines at the end in order to put all flux biases to 0 so that the fridge doesn't heat-up
     qm.close()
+
+    plt.show()
 
     # q1.z.cz.length =
     # q1.z.cz.level =
@@ -221,3 +254,5 @@ else:
         "figure": fig,
     }
     node_save(machine, "CZ_chevron_coupler", data)
+
+# %%

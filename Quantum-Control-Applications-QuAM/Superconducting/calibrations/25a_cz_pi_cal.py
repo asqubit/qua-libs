@@ -1,3 +1,4 @@
+# %%
 """
         CZ CHEVRON - 4ns granularity
 The goal of this protocol is to find the parameters of the CZ gate between two flux-tunable qubits.
@@ -99,14 +100,16 @@ cz = 1
 qubits = machine.active_qubits
 
 points_per_cycle = 20
-cz_corr = float(eval(f"cz{q2_number}_{q1_number}_2pi_dev"))
+cz_corr = 0 # float(eval(f"cz{q2_number}_{q1_number}_2pi_dev"))
 
 simulate = False
 flux_settle_time = 100
 
-n_avg = 100  # 000  # The number of averages
+n_avg = 1000  # The number of averages
 phis = np.arange(0, 3, 1 / points_per_cycle)
-amps = np.linspace(0.7, 1.3, 25)
+# dcs = np.linspace(0.7, 1.3, 25)
+cz_point = -0.03832
+dcs = cz_point * np.linspace(0.5, 1, 25)
 
 ###################
 # The QUA program #
@@ -115,16 +118,23 @@ amps = np.linspace(0.7, 1.3, 25)
 with program() as cz_pi_cal:
     I, I_st, Q, Q_st, n, n_st = qua_declaration(num_qubits=num_qubits_full)
     phi = declare(fixed)  # QUA variable angle of the second pi/2 wrt to the first pi/2
-    a = declare(fixed)  # QUA variable for the flux pulse amplitude pre-factor.
+    dc = declare(fixed)  # QUA variable for the flux pulse amplitude pre-factor.
     flag = declare(bool)
-    global_phase_correction = declare(fixed, value=cz_corr)
+    # global_phase_correction = declare(fixed, value=cz_corr)
+
+    machine.apply_all_flux_to_min()
 
     with for_(n, 0, n < n_avg, n + 1):
         # Save the averaging iteration to get the progress bar
         save(n, n_st)
 
+        coupler.set_dc_offset(-0.034)
+        q1.z.set_dc_offset(0.0175 + 0.05 * -0.034)
+        q2.z.set_dc_offset(q2.z.min_offset)
+        wait(100)
+
         with for_(*from_array(phi, phis)):
-            with for_(*from_array(a, amps)):
+            with for_(*from_array(dc, dcs)):
                 with for_each_(flag, [True, False]):
 
                     # control qubit
@@ -134,18 +144,40 @@ with program() as cz_pi_cal:
                     align()
                     play("x90", qubit_to_flux_tune.xy.name)
 
-                    # play("y180", f"q{qubit_to_flux_tune}_xy")
-                    # play("y180", f"q{qubit_to_flux_tune}_xy")
+                    align()
+                    # Wait some time to ensure that the flux pulse will arrive after the x90 pulse
+                    wait(20 * u.ns)
 
                     # cz
                     if cz:
-                        wait(flux_settle_time * u.ns, qubit_to_flux_tune.z.name)
+                        # wait(flux_settle_time * u.ns, qubit_to_flux_tune.z.name)
+                        # align()
+                        # coupler.play("const", amplitude_scale=a)
+                        # # play(f"cz_{q1_number}c{q2_number}t" * amp(a), qubit_to_flux_tune.z.name)
+                        # # frame_rotation_2pi(global_phase_correction, f"q{qubit_to_flux_tune}_xy")
+                        # # frame_rotation_2pi(global_phase_correction, f"q{qubit_to_flux_tune}_xy")
+                        # align()
+                        # wait(flux_settle_time * u.ns, qubit_to_flux_tune.z.name)
+
+                        q1.z.set_dc_offset(0.0175 + 0.05 * dc)
+                        # q2.z.set_dc_offset(q2.z.min_offset)
+                        # q2.z.set_dc_offset(q2.z.min_offset + 0.01 * dc)
+
+                        coupler.set_dc_offset(dc)
+                        wait(40 * u.ns, q2.z.name)
                         align()
-                        play(f"cz_{q1_number}c{q2_number}t" * amp(a), qubit_to_flux_tune.z.name)
-                        # frame_rotation_2pi(global_phase_correction, f"q{qubit_to_flux_tune}_xy")
-                        # frame_rotation_2pi(global_phase_correction, f"q{qubit_to_flux_tune}_xy")
-                        align()
-                        wait(flux_settle_time * u.ns, qubit_to_flux_tune.z.name)
+                        
+                        # Put back the qubit to the max frequency point
+                        # coupler.set_dc_offset(-0.033)
+                        # q1.z.set_dc_offset(q1.z.min_offset + 0.051 * -0.033)
+                        # q2.z.set_dc_offset(q2.z.min_offset + 0.01 * -0.033)
+
+                        coupler.set_dc_offset(0)
+                        q1.z.to_min()
+                        q2.z.to_min()
+
+                        # Wait some time to ensure that the flux pulse will end before the readout pulse
+                        wait(20 * u.ns)
 
                     # ramsey second pi/2
                     align()
@@ -170,12 +202,12 @@ with program() as cz_pi_cal:
         n_st.save("n")
 
         # Target:
-        I_st[qubits.index(qubit_to_flux_tune)].buffer(len(phis), len(amps), 2).average().save("I1")
-        Q_st[qubits.index(qubit_to_flux_tune)].buffer(len(phis), len(amps), 2).average().save("Q1")
+        I_st[qubits.index(qubit_to_flux_tune)].buffer(len(phis), len(dcs), 2).average().save("I1")
+        Q_st[qubits.index(qubit_to_flux_tune)].buffer(len(phis), len(dcs), 2).average().save("Q1")
 
         # Control:
-        I_st[qubits.index(qubit_to_meet_with)].buffer(len(phis), len(amps), 2).average().save("I2")
-        I_st[qubits.index(qubit_to_meet_with)].buffer(len(phis), len(amps), 2).average().save("Q2")
+        I_st[qubits.index(qubit_to_meet_with)].buffer(len(phis), len(dcs), 2).average().save("I2")
+        I_st[qubits.index(qubit_to_meet_with)].buffer(len(phis), len(dcs), 2).average().save("Q2")
 
 ###########################
 # Run or Simulate Program #
@@ -198,14 +230,14 @@ else:
     # import time
     # time.sleep(300)
     # I1 =job.result_handles.I1.fetch_all()
-    # print(f"len of amps {len(amps)}")
+    # print(f"len of dcs {len(dcs)}")
     # print(f"len of phis {len(phis)}")
 
     # fig = plt.figure()
-    fig, ax = plt.subplots(len(amps) // 5, 5)
+    fig, ax = plt.subplots(len(dcs) // 5, 5)
 
-    # fig2, ax2 = plt.subplots(len(amps)//5, 5)
-    # CZ_sign = np.zeros([len(amps),len(phis)])
+    # fig2, ax2 = plt.subplots(len(dcs)//5, 5)
+    # CZ_sign = np.zeros([len(dcs),len(phis)])
 
     interrupt_on_close(fig, job)
     results = fetching_tool(job, ["n", "I1", "Q1", "I2", "Q2"], mode="live")
@@ -217,7 +249,7 @@ else:
         progress_counter(n, n_avg, start_time=results.start_time)
 
         plt.suptitle(f"q{q2_number}->q{q1_number}: amp_scale, pha_diff_deg ({n}/{n_avg})")
-        for i in range(len(amps)):
+        for i in range(len(dcs)):
             ax[int(i // 5), int(i % 5)].cla()
 
             # Fitting for phase
@@ -236,7 +268,7 @@ else:
             except Exception as e:
                 print(e)
             ax[int(i // 5), int(i % 5)].plot(phis, I_control_e, '.r', phis, I_control_g, '.b')
-            ax[int(i // 5), int(i % 5)].set_title("%.7f, %.1f" % (amps[i], dphase))
+            ax[int(i // 5), int(i % 5)].set_title("%.7f, %.1f" % (dcs[i]/cz_point, dphase))
 
             # I10 = I1[:,i,0]
             # I10 /= np.max(I10)
@@ -246,20 +278,20 @@ else:
             # ax2[int(i//5), int(i%5)].cla()
             # ax2[int(i//5), int(i%5)].plot(I11, I10, '.')
             # ax2[int(i//5), int(i%5)].set_aspect('equal')
-            # ax2[int(i//5), int(i%5)].set_title(f"amp scale: {amps[i]}")
+            # ax2[int(i//5), int(i%5)].set_title(f"amp scale: {dcs[i]}")
 
         plt.tight_layout()
         plt.pause(3)
 
     plt.show()
 
-    # plt.plot(amps, [np.max(CZ_sign[x,:]) for x in range(len(amps))] )
+    # plt.plot(dcs, [np.max(CZ_sign[x,:]) for x in range(len(dcs))] )
     # plt.show()
 
     # def cosine_function(t, A, f, phi, C):
     #     return A * np.cos(2 * np.pi * f * (t - phi)) + C
 
-    # for i in range(len(amps)):
+    # for i in range(len(dcs)):
     #     # Initial guess for parameters
     #     initial_guess = [np.abs(np.max(I1[:,i,0])-np.min(I1[:,i,0]))/2, 1/15, 0.0, np.mean(I1[:,i,0])]
     #     # initial_guess = [1,1,1,1]
@@ -278,9 +310,12 @@ else:
 
         data = {}
         data["I1"] = I1
+        data["figure"] = fig
         # np.savez(save_dir / filename, I1=I1)
         # print("Data saved as %s.npz" % filename)
 
-        # np.savez(save_dir/'cz', I1=I1, Q1=Q1, I2=I2, Q2=Q2, ts=ts, amps=amps)
+        # np.savez(save_dir/'cz', I1=I1, Q1=Q1, I2=I2, Q2=Q2, ts=ts, dcs=dcs)
 
         node_save(machine, filename, data, additional_files=True)
+
+# %%
