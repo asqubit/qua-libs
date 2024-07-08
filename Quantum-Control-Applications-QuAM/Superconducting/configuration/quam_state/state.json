@@ -49,7 +49,7 @@
             "name": "octave2",
             "ip": "192.168.1.52",
             "port": 11240,
-            "calibration_db_path": "c:\\Users\\ASQUM_2\\Documents\\GitHub\\PYQUM\\TEST\\BETAsite\\QM\\OPX1000\\qua-libs\\Quantum-Control-Applications-QuAM\\Superconducting\\configuration",
+            "calibration_db_path": "/Users/adamachuck/Documents/GitHub/ASQUBIT/qua-libs/Quantum-Control-Applications-QuAM/Superconducting/configuration",
             "RF_outputs": {
                 "1": {
                     "id": 1,
@@ -86,7 +86,7 @@
             "name": "octave3",
             "ip": "192.168.1.52",
             "port": 11241,
-            "calibration_db_path": "c:\\Users\\ASQUM_2\\Documents\\GitHub\\PYQUM\\TEST\\BETAsite\\QM\\OPX1000\\qua-libs\\Quantum-Control-Applications-QuAM\\Superconducting\\configuration",
+            "calibration_db_path": "/Users/adamachuck/Documents/GitHub/ASQUBIT/qua-libs/Quantum-Control-Applications-QuAM/Superconducting/configuration",
             "RF_outputs": {
                 "1": {
                     "id": 1
